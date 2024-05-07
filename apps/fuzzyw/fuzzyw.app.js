@@ -91,11 +91,10 @@
   let animate = function(step) {
     if (animInterval) clearInterval(animInterval);
     let time_string_new_wrapped = g.wrapString(time_string, R.w).join("\n");
-    slideX = 0;
+    let slideX = 0;
     //don't let pulling the drawer change y
     let text_y = R.y + R.h/2;
     animInterval = setInterval(function() {
-      let time_start = getTime();
       //blank old time
       g.setColor(g.theme.bg);
       g.drawString(time_string_old_wrapped, R.x + R.w/2 + slideX, text_y);
