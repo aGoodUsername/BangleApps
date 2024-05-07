@@ -32,10 +32,7 @@
     /*LANG*/"five to *$2"
   ]
   };
-  
-  // prevent hours from being optimized away, not very elegant
-  print(fuzzy_string.hours);
-  
+
   let text_scale = 4;
   let timeout = 2.5*60;
   let drawTimeout;
@@ -43,11 +40,12 @@
   let time_string = "";
   let time_string_old = "";
   let time_string_old_wrapped = "";
-  
+  let settings = {};
+
   let loadSettings = function() {
     settings = require("Storage").readJSON(SETTINGS_FILE,1)|| {'showWidgets': false, 'animate': true};
   };
-  
+
   let queueDraw = function(seconds) {
     let millisecs = seconds * 1000;
     if (drawTimeout) clearTimeout(drawTimeout);
@@ -56,19 +54,26 @@
       draw();
     }, millisecs - (Date.now() % millisecs));
   };
-  
+
   let getTimeString = function(date) {
     let segment = Math.round((date.getMinutes()*60 + date.getSeconds() + 1)/300);
     let hour = date.getHours() + Math.floor(segment/12);
-    f_string = fuzzy_string.minutes[segment % 12];
-    if (f_string.includes('$1')) {
-      f_string = f_string.replace('$1', fuzzy_string.hours[(hour) % 12]);
-    } else {
-      f_string = f_string.replace('$2', fuzzy_string.hours[(hour + 1) % 12]);
+    let f_string = fuzzy_string.minutes[segment % 12];
+    for (let i = 0; i < f_string.length; i++) {
+      if (f_string.charAt(i) == '$') {
+        if (f_string.charAt(i+1) == '1') return f_string.slice(0, i) + fuzzy_string.hours[hour % 12] + f_string.slice(i+2);
+        return f_string.slice(0, i) + fuzzy_string.hours[(hour+1) % 12] + f_string.slice(i+2);
+      }
     }
-      return f_string;
+    // the more elegant solution that unfortunately gets optimized to smithereens
+    /*
+    if (f_string.includes('$1')) {
+      //return f_string.replace('$1', fuzzy_string.hours[hour % 12]);
+    } else {
+      //return f_string.replace('$2', fuzzy_string.hours[(hour + 1) % 12]);
+    }*/
   };
-  
+
   let draw = function() {
     time_string = getTimeString(new Date()).replace('*', '');
     //print(time_string);
@@ -82,7 +87,7 @@
     }
     queueDraw(timeout);
   };
-  
+
   let animate = function(step) {
     if (animInterval) clearInterval(animInterval);
     let time_string_new_wrapped = g.wrapString(time_string, R.w).join("\n");
@@ -114,19 +119,19 @@
       //print(Math.round((getTime() - time_start)*1000));
     }, 30);
   };
-  
+
   let quickDraw = function() {
     let time_string_new_wrapped = g.wrapString(time_string, R.w).join("\n");
     g.setColor(g.theme.bg);
-     g.drawString(time_string_old_wrapped, R.x + R.w/2, R.y + R.h/2);
+    g.drawString(time_string_old_wrapped, R.x + R.w/2, R.y + R.h/2);
     g.setColor(g.theme.fg);
     g.drawString(time_string_new_wrapped, R.x + R.w/2, R.y + R.h/2);
     time_string_old_wrapped = time_string_new_wrapped;
   };
-  
+
   g.clear();
   loadSettings();
-  
+
   // Stop updates when LCD is off, restart when on
   Bangle.on('lcdPower',on=>{
     if (on) {
@@ -136,7 +141,7 @@
       drawTimeout = undefined;
     }
   });
-  
+
   Bangle.setUI({
     mode : 'clock',
     remove : function() {
@@ -148,14 +153,14 @@
       require('widget_utils').show(); // re-show widgets
     }
   });
-  
+
   Bangle.loadWidgets();
   if (settings.showWidgets) {
     Bangle.drawWidgets();
   } else {
     require("widget_utils").swipeOn(); // hide widgets, make them visible with a swipe
   }
-  
-  R = Bangle.appRect;
+
+  let R = Bangle.appRect;
   draw();
 }
